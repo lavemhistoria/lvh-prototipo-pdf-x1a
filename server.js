@@ -106,15 +106,109 @@ async function gerarPdfBase(pergunta, resposta, imagensPreparadas, caminhoSaida)
   });
 }
 
-// CAMINHO DO ARQUIVO DE DEFINIÇÃO PDFX, usado para declarar o OutputIntent
-// (perfil ICC de saída) no PDF, exigido pela especificação PDF/X-1a real.
+// CAMINHO DO PERFIL ICC usado na declaração de OutputIntent do PDF/X-1a.
 //
-// ATENÇÃO: este arquivo aponta para um perfil ICC GENÉRICO de mercado
-// (Coated FOGRA39), usado apenas para o PDF sair estruturalmente completo
-// neste protótipo. NÃO é o perfil real da UmLivro/Meta. Antes de qualquer
-// uso além de teste, gere uma nova versão deste arquivo apontando para o
-// perfil ICC que a Bianca fornecer (veja gerar-definicao-pdfx.js).
+// ATENÇÃO: este é um perfil GENÉRICO de mercado (Coated FOGRA39), usado
+// apenas para o PDF sair estruturalmente completo neste protótipo.
+// NÃO é o perfil real da UmLivro/Meta. Quando a Bianca fornecer o perfil
+// real, troque o arquivo dentro de /perfis-icc e ajuste o nome abaixo.
+const NOME_ARQUIVO_PERFIL_ICC = 'FOGRA39L_coated.icc';
+const CAMINHO_PERFIL_ICC = path.join(__dirname, 'perfis-icc', NOME_ARQUIVO_PERFIL_ICC);
 const CAMINHO_DEFINICAO_PDFX = path.join(__dirname, 'PDFX_def_lvh.ps');
+
+// Gera o arquivo de definição PDFX (.ps) usando o caminho absoluto do
+// AMBIENTE ATUAL em que o servidor está rodando. Isso é feito em tempo de
+// execução (não commitado no Git) justamente para nunca depender de um
+// caminho fixo gravado em outra máquina (ex: ambiente de teste local vs.
+// container de produção no Render, que têm estruturas de pasta diferentes).
+function gerarArquivoDefinicaoPdfx() {
+  const template = `%!
+% Arquivo de definicao PDFX gerado automaticamente na inicializacao do servidor.
+% Nao edite manualmente nem comite este arquivo: ele e regenerado a cada start.
+
+systemdict /ColorConversionStrategy known {
+  systemdict /ColorConversionStrategy get cvn dup /Gray ne exch /CMYK ne and
+} {
+  (\\nERROR: ColorConversionStrategy not set.)=
+  true
+} ifelse
+{ (ERROR: ColorConversionStrategy must be /DeviceGray or /DeviceCMYK.)=
+  /ColorConversionStrategy cvx /rangecheck signalerror
+} if
+
+[ /GTS_PDFXVersion (PDF/X-1a:2001)
+  /Title (La vem historia - PDF X-1a)
+  /Trapped /False
+/DOCINFO pdfmark
+
+/ICCProfile (${CAMINHO_PERFIL_ICC}) def
+
+currentdict /ICCProfile known {
+  [/_objdef {icc_PDFX} /type /stream /OBJ pdfmark
+  [{icc_PDFX} <<
+  systemdict /ColorConversionStrategy known {
+    systemdict /ColorConversionStrategy get cvn dup /Gray eq {
+      pop /N 1 false
+    }{
+      dup /RGB eq {
+        (RGB is not a valid ColorConversionStrategy for PDF/X output)=
+        /ColorConversionStrategycvx /rangecheck signalerror
+      }{
+        /CMYK eq {
+          /N 4 false
+        }{
+          (ColorConversionStrategy not a device space, falling back to ProcessColorModel, output may not be valid PDF/X.)=
+          true
+        } ifelse
+      } ifelse
+    } ifelse
+  } {
+    (ColorConversionStrategy not set, falling back to ProcessColorModel, output may not be valid PDF/X.)=
+    true
+  } ifelse
+  {
+    currentpagedevice /ProcessColorModel get
+    dup /DeviceGray eq {
+      pop /N 1
+    }{
+      dup /DeviceRGB eq {
+        (RGB is not a valid ProcessColorModel for PDF/X output)=
+        /ColorConversionStrategycvx /rangecheck signalerror
+      }{
+        dup /DeviceCMYK eq {
+          pop /N 4
+        } {
+          (ProcessColorModel not a device space.)=
+          /ProcessColorModel cvx /rangecheck signalerror
+        } ifelse
+      } ifelse
+    } ifelse
+  } if
+  >> /PUT pdfmark
+  [{icc_PDFX} ICCProfile (r) file /PUT pdfmark
+} if
+
+[/_objdef {OutputIntent_PDFX} /type /dict /OBJ pdfmark
+[{OutputIntent_PDFX} <<
+  /Type /OutputIntent
+  /S /GTS_PDFX
+  /OutputCondition (FOGRA39 generico - aguardando perfil real da UmLivro)
+  /Info (FOGRA39 generico - aguardando perfil real da UmLivro)
+  /OutputConditionIdentifier (FOGRA39)
+  /RegistryName (http://www.color.org)
+  currentdict /ICCProfile known {
+    /DestOutputProfile {icc_PDFX}
+  } if
+>> /PUT pdfmark
+[{Catalog} <</OutputIntents [ {OutputIntent_PDFX} ]>> /PUT pdfmark
+`;
+
+  fs.writeFileSync(CAMINHO_DEFINICAO_PDFX, template, 'latin1');
+  console.log(`Arquivo de definição PDFX gerado em: ${CAMINHO_DEFINICAO_PDFX}`);
+  console.log(`Usando perfil ICC: ${CAMINHO_PERFIL_ICC}`);
+}
+
+gerarArquivoDefinicaoPdfx();
 
 // roda Ghostscript para converter o PDF base em PDF/X-1a:2001 de verdade,
 // incluindo a declaração de OutputIntent (exigida pela especificação X-1a).

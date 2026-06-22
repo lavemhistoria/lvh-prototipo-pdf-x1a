@@ -4,3 +4,4 @@ temp/*
 server.log
 .env
 .DS_Store
+PDFX_def_lvh.ps
