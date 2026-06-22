@@ -9,7 +9,7 @@ RUN apt-get update && \
 WORKDIR /app
 
 # copia apenas os arquivos de dependência primeiro (otimiza o cache do build)
-COPY package.json package-lock.json ./
+COPY package.json ./
 RUN npm install --omit=dev
 
 # copia o restante do projeto
