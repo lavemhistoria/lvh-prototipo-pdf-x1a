@@ -1,0 +1,80 @@
+%!
+% Arquivo de definição PDFX gerado automaticamente.
+% Gerado por gerar-definicao-pdfx.js. Não edite manualmente, regenere o
+% arquivo executando o script novamente com o perfil ICC desejado.
+
+systemdict /ColorConversionStrategy known {
+  systemdict /ColorConversionStrategy get cvn dup /Gray ne exch /CMYK ne and
+} {
+  (\nERROR: ColorConversionStrategy not set.)=
+  true
+} ifelse
+{ (ERROR: ColorConversionStrategy must be /DeviceGray or /DeviceCMYK.)=
+  /ColorConversionStrategy cvx /rangecheck signalerror
+} if
+
+[ /GTS_PDFXVersion (PDF/X-1a:2001)
+  /Title (La vem historia - PDF X-1a)
+  /Trapped /False
+/DOCINFO pdfmark
+
+/ICCProfile (/home/claude/prototipo-lvh/perfis-icc/FOGRA39L_coated.icc) def
+
+currentdict /ICCProfile known {
+  [/_objdef {icc_PDFX} /type /stream /OBJ pdfmark
+  [{icc_PDFX} <<
+  systemdict /ColorConversionStrategy known {
+    systemdict /ColorConversionStrategy get cvn dup /Gray eq {
+      pop /N 1 false
+    }{
+      dup /RGB eq {
+        (RGB is not a valid ColorConversionStrategy for PDF/X output)=
+        /ColorConversionStrategycvx /rangecheck signalerror
+      }{
+        /CMYK eq {
+          /N 4 false
+        }{
+          (ColorConversionStrategy not a device space, falling back to ProcessColorModel, output may not be valid PDF/X.)=
+          true
+        } ifelse
+      } ifelse
+    } ifelse
+  } {
+    (ColorConversionStrategy not set, falling back to ProcessColorModel, output may not be valid PDF/X.)=
+    true
+  } ifelse
+  {
+    currentpagedevice /ProcessColorModel get
+    dup /DeviceGray eq {
+      pop /N 1
+    }{
+      dup /DeviceRGB eq {
+        (RGB is not a valid ProcessColorModel for PDF/X output)=
+        /ColorConversionStrategycvx /rangecheck signalerror
+      }{
+        dup /DeviceCMYK eq {
+          pop /N 4
+        } {
+          (ProcessColorModel not a device space.)=
+          /ProcessColorModel cvx /rangecheck signalerror
+        } ifelse
+      } ifelse
+    } ifelse
+  } if
+  >> /PUT pdfmark
+  [{icc_PDFX} ICCProfile (r) file /PUT pdfmark
+} if
+
+[/_objdef {OutputIntent_PDFX} /type /dict /OBJ pdfmark
+[{OutputIntent_PDFX} <<
+  /Type /OutputIntent
+  /S /GTS_PDFX
+  /OutputCondition (FOGRA39 (generico - aguardando perfil real da UmLivro))
+  /Info (FOGRA39 (generico - aguardando perfil real da UmLivro))
+  /OutputConditionIdentifier (FOGRA39 (generico - aguardando perfil real da UmLivro))
+  /RegistryName (http://www.color.org)
+  currentdict /ICCProfile known {
+    /DestOutputProfile {icc_PDFX}
+  } if
+>> /PUT pdfmark
+[{Catalog} <</OutputIntents [ {OutputIntent_PDFX} ]>> /PUT pdfmark

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lá vem história! — Protótipo de geração de PDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cor-fundo: #f7f4ee;
+    --cor-texto: #2b2b25;
+    --cor-texto-suave: #6b6558;
+    --cor-verde: #3f5d4e;
+    --cor-verde-escuro: #2c4338;
+    --cor-marrom: #8a6a4f;
+    --cor-borda: #d9d3c4;
+    --cor-branco: #ffffff;
+    --cor-erro: #a4453a;
+
+    --espaco-1: 8px;
+    --espaco-2: 16px;
+    --espaco-3: 24px;
+    --espaco-4: 32px;
+    --espaco-5: 48px;
+    --espaco-6: 64px;
+    --espaco-7: 96px;
+
+    --raio: 4px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: var(--espaco-6) var(--espaco-3) var(--espaco-7);
+  }
+
+  header {
+    margin-bottom: var(--espaco-6);
+  }
+
+  .marca {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--cor-verde);
+    text-transform: uppercase;
+    margin: 0 0 var(--espaco-4) 0;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(28px, 5vw, 38px);
+    line-height: 1.25;
+    margin: 0 0 var(--espaco-2) 0;
+    color: var(--cor-texto);
+  }
+
+  .subtitulo {
+    font-size: 16px;
+    color: var(--cor-texto-suave);
+    line-height: 1.5;
+    margin: 0;
+    max-width: 480px;
+  }
+
+  .secao {
+    margin-bottom: var(--espaco-5);
+  }
+
+  .rotulo {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--cor-verde-escuro);
+    margin-bottom: var(--espaco-2);
+  }
+
+  .pergunta-card {
+    background-color: var(--cor-branco);
+    border: 1px solid var(--cor-borda);
+    border-left: 3px solid var(--cor-verde);
+    border-radius: var(--raio);
+    padding: var(--espaco-3);
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    line-height: 1.4;
+    color: var(--cor-texto);
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: var(--espaco-2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--cor-texto);
+    background-color: var(--cor-branco);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio);
+    resize: vertical;
+    transition: border-color 150ms ease;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: var(--cor-verde);
+  }
+
+  .zona-upload {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--espaco-2);
+  }
+
+  .slot-foto {
+    aspect-ratio: 1;
+    border: 1.5px dashed var(--cor-borda);
+    border-radius: var(--raio);
+    background-color: var(--cor-branco);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 150ms ease, background-color 150ms ease;
+  }
+
+  .slot-foto:hover {
+    border-color: var(--cor-marrom);
+  }
+
+  .slot-foto.preenchido {
+    border-style: solid;
+    border-color: var(--cor-verde);
+  }
+
+  .slot-foto input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .slot-foto .icone-mais {
+    font-size: 28px;
+    color: var(--cor-borda);
+    font-weight: 400;
+  }
+
+  .slot-foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .alerta-qualidade {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(164, 69, 58, 0.92);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    padding: 4px 6px;
+    letter-spacing: 0.02em;
+  }
+
+  .dica-upload {
+    font-size: 13px;
+    color: var(--cor-texto-suave);
+    margin-top: var(--espaco-2);
+  }
+
+  button[type="submit"] {
+    width: 100%;
+    padding: 16px var(--espaco-3);
+    background-color: var(--cor-verde);
+    color: #fff;
+    border: none;
+    border-radius: var(--raio);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 150ms ease, transform 150ms ease;
+  }
+
+  button[type="submit"]:hover:not(:disabled) {
+    background-color: var(--cor-verde-escuro);
+  }
+
+  button[type="submit"]:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+
+  button[type="submit"]:disabled {
+    background-color: var(--cor-borda);
+    cursor: not-allowed;
+  }
+
+  .status {
+    margin-top: var(--espaco-3);
+    font-size: 14px;
+    text-align: center;
+    min-height: 20px;
+  }
+
+  .status.erro { color: var(--cor-erro); }
+  .status.sucesso { color: var(--cor-verde-escuro); }
+
+  .selo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: var(--espaco-5);
+    font-size: 12px;
+    color: var(--cor-texto-suave);
+    border-top: 1px solid var(--cor-borda);
+    padding-top: var(--espaco-3);
+  }
+
+  .ponto {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--cor-marrom);
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 480px) {
+    .container { padding: var(--espaco-4) var(--espaco-2) var(--espaco-6); }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <p class="marca">Lá vem história!</p>
+      <h1>Protótipo de geração de PDF</h1>
+      <p class="subtitulo">Responda à pergunta, envie 3 fotos e gere um PDF de teste já processado para conformidade PDF/X-1a.</p>
+    </header>
+
+    <form id="formulario">
+      <div class="secao">
+        <span class="rotulo">A pergunta de hoje</span>
+        <div class="pergunta-card" id="pergunta-texto">Qual é a sua lembrança mais antiga da casa onde você cresceu?</div>
+      </div>
+
+      <div class="secao">
+        <span class="rotulo">Sua resposta</span>
+        <textarea name="resposta" id="resposta" placeholder="Escreva sua resposta aqui..." required></textarea>
+      </div>
+
+      <div class="secao">
+        <span class="rotulo">Suas fotos (até 3)</span>
+        <div class="zona-upload" id="zona-upload">
+          <label class="slot-foto" data-slot="0">
+            <span class="icone-mais">+</span>
+            <input type="file" accept="image/*" data-index="0" />
+          </label>
+          <label class="slot-foto" data-slot="1">
+            <span class="icone-mais">+</span>
+            <input type="file" accept="image/*" data-index="1" />
+          </label>
+          <label class="slot-foto" data-slot="2">
+            <span class="icone-mais">+</span>
+            <input type="file" accept="image/*" data-index="2" />
+          </label>
+        </div>
+        <p class="dica-upload">Recomendado: pelo menos 1772 x 1181px para boa qualidade de impressão.</p>
+      </div>
+
+      <button type="submit" id="botao-gerar">Gerar PDF/X-1a</button>
+      <p class="status" id="status"></p>
+    </form>
+
+    <div class="selo">
+      <span class="ponto"></span>
+      <span>Pipeline real: conversão CMYK + Ghostscript para conformidade PDF/X-1a:2001</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
