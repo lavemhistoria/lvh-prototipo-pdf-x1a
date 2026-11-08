@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Livro de teste</title>
+<style>
+  /* Imita o que o site faz no window.print: A5 sem margem, cores do site, mesmas fontes */
+  @font-face { font-family: 'Fraunces'; src: url('Fraunces-VariableFont_SOFT,WONK,opsz,wght.ttf'); }
+  @page { size: 148mm 210mm; margin: 0; }
+  html, body { margin: 0; padding: 0; }
+  .folha {
+    width: 148mm; height: 210mm; box-sizing: border-box; padding: 15mm 11mm;
+    break-after: page; position: relative; overflow: hidden;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    background: #fff; color: #2a231c; font-family: 'Fraunces', Georgia, serif;
+  }
+  .capa { background: #5b6b4f; color: #f3ead6; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .rotulo { font-size: 7.5px; letter-spacing: .22em; text-transform: uppercase; color: #9a8f80; }
+  h2 { font-size: 18px; font-weight: 500; margin: 6mm 0 3mm; }
+  p { font-size: 10.5px; line-height: 1.55; margin: 0 0 3mm; }
+  .fio { height: 1px; background: linear-gradient(to right, rgb(49 49 39 / .1) 3px, transparent 3px) repeat-x; background-size: 4px 1px; margin: 4mm 0; }
+  .foto { display: block; margin: 4mm auto; padding: 3px; background: #fdfbf6; transform: rotate(-1.5deg); width: 85%; }
+  .foto img { display: block; width: 100%; }
+  .legenda { font-size: 8px; color: #9a8f80; text-align: center; font-style: italic; }
+  .numero { position: absolute; bottom: 7mm; left: 0; right: 0; text-align: center; font-size: 10px; color: #9a8f80; }
+  .qr { width: 22mm; height: 22mm; }
+</style>
+</head>
+<body>
+  <section class="folha capa">
+    <div style="font-size:26px">A minha história</div>
+    <div style="font-size:12px;margin-top:4mm">Maria da Silva</div>
+  </section>
+
+  <section class="folha">
+    <div class="rotulo">Infância</div>
+    <h2>Qual é a sua lembrança mais antiga?</h2>
+    <div class="fio"></div>
+    <p>Lembro do quintal da casa da minha avó, em Petrópolis. Tinha um pé de jabuticaba enorme e a gente subia para comer direto do galho, com a mão toda roxa. Minha mãe gritava da janela que ia cair, e ninguém nunca caiu.</p>
+    <p>Depois do almoço, todo mundo dormia, e eu ficava sozinha olhando as formigas carregando folhas pelo muro.</p>
+    <figure class="foto"><img src="foto-cor.jpg" alt=""></figure>
+    <div class="legenda">O quintal, em 1962</div>
+    <div class="numero">3</div>
+  </section>
+
+  <section class="folha">
+    <div class="rotulo">Teste de cor</div>
+    <h2>Cores saturadas e sombras profundas</h2>
+    <p>Esta página existe para forçar a cobertura de tinta: o degradê vai do claro ao preto absoluto em todas as cores.</p>
+    <figure class="foto" style="transform:none"><img src="teste-saturado.jpg" alt=""></figure>
+    <figure class="foto" style="width:45%"><img src="foto-2.jpg" alt=""></figure>
+    <p>Ouça esta resposta na voz dela:</p>
+    <svg class="qr" viewBox="0 0 21 21" shape-rendering="crispEdges">
+      <rect width="21" height="21" fill="#fff"/>
+      <path fill="#2a231c" d="M0 0h7v7H0zM1 1v5h5V1zM2 2h3v3H2zM14 0h7v7h-7zM15 1v5h5V1zM16 2h3v3h-3zM0 14h7v7H0zM1 15v5h5v-5zM2 16h3v3H2zM9 1h2v2H9zM8 4h3v1H8zM9 8h4v2H9zM14 9h2v3h-2zM8 13h2v2H8zM11 15h3v2h-3zM15 14h2v2h-2zM18 16h2v4h-2zM9 18h3v2H9z"/>
+    </svg>
+    <div class="numero">4</div>
+  </section>
+</body>
+</html>

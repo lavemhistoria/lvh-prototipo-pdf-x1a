@@ -5,3 +5,11 @@ server.log
 .env
 .DS_Store
 PDFX_def_lvh.ps
+
+# motor da grafica
+__pycache__/
+.venv/
+grafica/teste/render/
+grafica/teste/*.pdf
+# fotos pessoais usadas nos testes: nunca commitar
+grafica/teste/foto-*.jpg

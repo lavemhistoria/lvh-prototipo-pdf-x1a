@@ -3,10 +3,12 @@
  *
  * Pipeline:
  * 1. Recebe pergunta (fixa), resposta em texto e 3 imagens via upload
- * 2. Converte as 3 imagens para CMYK (ou grayscale puro, se detectado como P&B)
- * 3. Monta um PDF simples com a pergunta, resposta e as 3 fotos
- * 4. Roda Ghostscript sobre o PDF para conformidade PDF/X-1a:2001 real
- * 5. Devolve o PDF final para download
+ * 2. Monta um PDF simples com a pergunta, resposta e as 3 fotos
+ * 3. Passa o PDF pelo motor da gráfica (grafica/pipeline.py): CMYK, preto em K,
+ *    limite de 280%, sangria, marcas de corte, PDF/X-1a e validação
+ * 4. Devolve o PDF final para download
+ *
+ * POST /grafica recebe o PDF que o site já gera (RGB) e devolve o PDF/X-1a.
  */
 
 const express = require('express');
@@ -34,40 +36,10 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 }, // 15mb por imagem
 });
 
-// detecta se a imagem é visualmente grayscale comparando médias dos canais RGB
-async function ehGrayscale(buffer) {
-  const stats = await sharp(buffer).stats();
-  const canais = stats.channels;
-  if (canais.length < 3) return true;
-
-  const [r, g, b] = canais;
-  const diferencaMaxima = Math.max(
-    Math.abs(r.mean - g.mean),
-    Math.abs(g.mean - b.mean),
-    Math.abs(r.mean - b.mean)
-  );
-  return diferencaMaxima < 6;
-}
-
-// converte uma imagem para CMYK (ou grayscale puro) e devolve como JPEG buffer
-// pdfkit não lê TIFF/CMYK nativamente de forma simples, então mantemos JPEG
-// mas já com o espaço de cor correto definido via sharp antes de embutir no PDF
+// A conversão de cor (CMYK, P&B em K, limite de tinta) acontece no pipeline da gráfica,
+// depois de montar o PDF. Aqui só corrigimos a orientação EXIF da foto.
 async function prepararImagem(buffer) {
-  const grayscale = await ehGrayscale(buffer);
-
-  const imagem = sharp(buffer).rotate(); // corrige orientação EXIF
-
-  if (grayscale) {
-    return {
-      buffer: await imagem.toColorspace('b-w').jpeg({ quality: 95 }).toBuffer(),
-      grayscale: true,
-    };
-  }
-
-  return {
-    buffer: await imagem.jpeg({ quality: 95 }).toBuffer(),
-    grayscale: false,
-  };
+  return { buffer: await sharp(buffer).rotate().jpeg({ quality: 95 }).toBuffer() };
 }
 
 async function gerarPdfBase(pergunta, resposta, imagensPreparadas, caminhoSaida) {
@@ -106,139 +78,89 @@ async function gerarPdfBase(pergunta, resposta, imagensPreparadas, caminhoSaida)
   });
 }
 
-// CAMINHO DO PERFIL ICC usado na declaração de OutputIntent do PDF/X-1a.
+// MOTOR DA GRÁFICA
 //
-// ATENÇÃO: este é um perfil GENÉRICO de mercado (Coated FOGRA39), usado
-// apenas para o PDF sair estruturalmente completo neste protótipo.
-// NÃO é o perfil real da UmLivro/Meta. Quando a Bianca fornecer o perfil
-// real, troque o arquivo dentro de /perfis-icc e ajuste o nome abaixo.
-const NOME_ARQUIVO_PERFIL_ICC = 'FOGRA39L_coated.icc';
-const CAMINHO_PERFIL_ICC = path.join(__dirname, 'perfis-icc', NOME_ARQUIVO_PERFIL_ICC);
-const CAMINHO_DEFINICAO_PDFX = path.join(__dirname, 'PDFX_def_lvh.ps');
+// Toda a conversão para o padrão da Meta (cor CMYK, preto em K, limite de 280%,
+// sangria, marcas de corte, PDF/X-1a e validação) mora em grafica/pipeline.py.
+// O perfil ICC e os textos de OutputCondition também ficam lá.
+const PYTHON = process.env.PYTHON_GRAFICA || 'python3';
+const PIPELINE = path.join(__dirname, 'grafica', 'pipeline.py');
 
-// Gera o arquivo de definição PDFX (.ps) usando o caminho absoluto do
-// AMBIENTE ATUAL em que o servidor está rodando. Isso é feito em tempo de
-// execução (não commitado no Git) justamente para nunca depender de um
-// caminho fixo gravado em outra máquina (ex: ambiente de teste local vs.
-// container de produção no Render, que têm estruturas de pasta diferentes).
-function gerarArquivoDefinicaoPdfx() {
-  const template = `%!
-% Arquivo de definicao PDFX gerado automaticamente na inicializacao do servidor.
-% Nao edite manualmente nem comite este arquivo: ele e regenerado a cada start.
-
-systemdict /ColorConversionStrategy known {
-  systemdict /ColorConversionStrategy get cvn dup /Gray ne exch /CMYK ne and
-} {
-  (\\nERROR: ColorConversionStrategy not set.)=
-  true
-} ifelse
-{ (ERROR: ColorConversionStrategy must be /DeviceGray or /DeviceCMYK.)=
-  /ColorConversionStrategy cvx /rangecheck signalerror
-} if
-
-[ /GTS_PDFXVersion (PDF/X-1a:2001)
-  /Title (La vem historia - PDF X-1a)
-  /Trapped /False
-/DOCINFO pdfmark
-
-/ICCProfile (${CAMINHO_PERFIL_ICC}) def
-
-currentdict /ICCProfile known {
-  [/_objdef {icc_PDFX} /type /stream /OBJ pdfmark
-  [{icc_PDFX} <<
-  systemdict /ColorConversionStrategy known {
-    systemdict /ColorConversionStrategy get cvn dup /Gray eq {
-      pop /N 1 false
-    }{
-      dup /RGB eq {
-        (RGB is not a valid ColorConversionStrategy for PDF/X output)=
-        /ColorConversionStrategycvx /rangecheck signalerror
-      }{
-        /CMYK eq {
-          /N 4 false
-        }{
-          (ColorConversionStrategy not a device space, falling back to ProcessColorModel, output may not be valid PDF/X.)=
-          true
-        } ifelse
-      } ifelse
-    } ifelse
-  } {
-    (ColorConversionStrategy not set, falling back to ProcessColorModel, output may not be valid PDF/X.)=
-    true
-  } ifelse
-  {
-    currentpagedevice /ProcessColorModel get
-    dup /DeviceGray eq {
-      pop /N 1
-    }{
-      dup /DeviceRGB eq {
-        (RGB is not a valid ProcessColorModel for PDF/X output)=
-        /ColorConversionStrategycvx /rangecheck signalerror
-      }{
-        dup /DeviceCMYK eq {
-          pop /N 4
-        } {
-          (ProcessColorModel not a device space.)=
-          /ProcessColorModel cvx /rangecheck signalerror
-        } ifelse
-      } ifelse
-    } ifelse
-  } if
-  >> /PUT pdfmark
-  [{icc_PDFX} ICCProfile (r) file /PUT pdfmark
-} if
-
-[/_objdef {OutputIntent_PDFX} /type /dict /OBJ pdfmark
-[{OutputIntent_PDFX} <<
-  /Type /OutputIntent
-  /S /GTS_PDFX
-  /OutputCondition (FOGRA39 generico - aguardando perfil real da UmLivro)
-  /Info (FOGRA39 generico - aguardando perfil real da UmLivro)
-  /OutputConditionIdentifier (FOGRA39)
-  /RegistryName (http://www.color.org)
-  currentdict /ICCProfile known {
-    /DestOutputProfile {icc_PDFX}
-  } if
->> /PUT pdfmark
-[{Catalog} <</OutputIntents [ {OutputIntent_PDFX} ]>> /PUT pdfmark
-`;
-
-  fs.writeFileSync(CAMINHO_DEFINICAO_PDFX, template, 'latin1');
-  console.log(`Arquivo de definição PDFX gerado em: ${CAMINHO_DEFINICAO_PDFX}`);
-  console.log(`Usando perfil ICC: ${CAMINHO_PERFIL_ICC}`);
-}
-
-gerarArquivoDefinicaoPdfx();
-
-// roda Ghostscript para converter o PDF base em PDF/X-1a:2001 de verdade,
-// incluindo a declaração de OutputIntent (exigida pela especificação X-1a).
-// A ordem dos argumentos importa: o arquivo de definição PDFX precisa vir
-// ANTES do PDF de entrada, pois ele injeta os pdfmarks no fluxo de processamento.
-function converterParaX1a(caminhoEntrada, caminhoSaida) {
+// Devolve o relatório do pipeline. Rejeita se o PDF não passou na validação:
+// um arquivo reprovado nunca deve seguir para a gráfica.
+function converterParaGrafica(caminhoEntrada, caminhoSaida, { largura = 148, altura = 210, nome, fundo } = {}) {
   return new Promise((resolve, reject) => {
-    const args = [
-      '-dPDFX',
-      '-dBATCH',
-      '-dNOPAUSE',
-      '-dNOSAFER', // necessário para o Ghostscript ler o perfil ICC referenciado no .ps
-      '-sColorConversionStrategy=CMYK',
-      '-sProcessColorModel=DeviceCMYK',
-      '-sDEVICE=pdfwrite',
-      '-dCompatibilityLevel=1.3',
-      `-sOutputFile=${caminhoSaida}`,
-      CAMINHO_DEFINICAO_PDFX,
-      caminhoEntrada,
-    ];
+    const args = [PIPELINE, caminhoEntrada, caminhoSaida, '--largura', String(largura), '--altura', String(altura)];
+    if (nome) args.push('--nome', nome);
+    if (fundo) args.push('--fundo', fundo);
 
-    execFile('gs', args, (erro, stdout, stderr) => {
-      if (erro) {
-        console.error('Erro no Ghostscript:', stderr);
-        return reject(erro);
+    execFile(PYTHON, args, { maxBuffer: 10 * 1024 * 1024 }, (erro, stdout, stderr) => {
+      let relatorio;
+      try {
+        relatorio = JSON.parse(stdout);
+      } catch {
+        console.error('Pipeline da gráfica sem relatório:', stderr || erro);
+        return reject(new Error('Falha no pipeline da gráfica.'));
       }
-      resolve();
+      if (!relatorio.ok) {
+        const falha = new Error('PDF reprovado na validação da gráfica.');
+        falha.relatorio = relatorio;
+        return reject(falha);
+      }
+      resolve(relatorio);
     });
   });
 }
+
+// Recebe o livro impresso pelo site no modo gráfica e devolve o PDF/X-1a.
+// Campos: "livro" (camada de frente, ?grafica=frente, impressa sem fundos) e "fundo"
+// (camada de fundo, ?grafica=fundo, com fundos). Sem o fundo, "livro" é tratado como o PDF
+// comum do site; se ele tiver transparência, a validação reprova.
+// O relatório da validação vai no cabeçalho X-Relatorio-Grafica (JSON em base64).
+const uploadPdf = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 200 * 1024 * 1024 },
+});
+
+app.post('/grafica', uploadPdf.fields([{ name: 'livro', maxCount: 1 }, { name: 'fundo', maxCount: 1 }]), async (req, res) => {
+  const idSessao = randomUUID();
+  const caminhoEntrada = path.join(PASTA_TEMP, `${idSessao}_rgb.pdf`);
+  const caminhoFundo = path.join(PASTA_TEMP, `${idSessao}_fundo.pdf`);
+  const caminhoSaida = path.join(PASTA_TEMP, `${idSessao}_x1a.pdf`);
+  const limpar = () => {
+    fs.unlink(caminhoEntrada, () => {});
+    fs.unlink(caminhoFundo, () => {});
+    fs.unlink(caminhoSaida, () => {});
+  };
+
+  try {
+    const livro = req.files?.livro?.[0];
+    const fundo = req.files?.fundo?.[0];
+    if (!livro) return res.status(400).json({ erro: 'Envie o PDF do livro no campo "livro".' });
+    fs.writeFileSync(caminhoEntrada, livro.buffer);
+    if (fundo) fs.writeFileSync(caminhoFundo, fundo.buffer);
+
+    const relatorio = await converterParaGrafica(caminhoEntrada, caminhoSaida, {
+      largura: Number(req.body.largura) || 148,
+      altura: Number(req.body.altura) || 210,
+      nome: req.body.nome,
+      fundo: fundo ? caminhoFundo : undefined,
+    });
+
+    res.set('X-Relatorio-Grafica', Buffer.from(JSON.stringify(relatorio)).toString('base64'));
+    res.download(caminhoSaida, 'livro_grafica_x1a.pdf', (erro) => {
+      limpar();
+      if (erro) console.error('Erro ao enviar PDF:', erro);
+    });
+  } catch (erro) {
+    limpar();
+    console.error('Erro no pipeline da gráfica:', erro.relatorio || erro);
+    res.status(erro.relatorio ? 422 : 500).json({
+      erro: erro.message,
+      relatorio: erro.relatorio,
+    });
+  }
+});
 
 app.post('/gerar-pdf', upload.array('fotos', 3), async (req, res) => {
   const idSessao = randomUUID();
@@ -263,7 +185,7 @@ app.post('/gerar-pdf', upload.array('fotos', 3), async (req, res) => {
     }
 
     await gerarPdfBase(pergunta, resposta, imagensPreparadas, caminhoPdfBase);
-    await converterParaX1a(caminhoPdfBase, caminhoPdfFinal);
+    await converterParaGrafica(caminhoPdfBase, caminhoPdfFinal, { largura: 140, altura: 200 });
 
     res.download(caminhoPdfFinal, 'lavemhistoria_x1a.pdf', (erro) => {
       // limpeza dos arquivos temporários após o download
