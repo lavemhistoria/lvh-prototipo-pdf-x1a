@@ -138,6 +138,7 @@ def gerar(entrada, saida, largura_mm=148.0, altura_mm=210.0, caminho_icc=ICC_PAD
                 'cores_convertidas': rel.cores_convertidas,
                 'opacidades_achatadas': rel.opacidades_achatadas,
                 'paginas_com_fundo': rel.fundos,
+                'links_removidos': rel.links_removidos,
             }
             avisos = list(rel.avisos)
 

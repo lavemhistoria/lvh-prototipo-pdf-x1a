@@ -33,7 +33,7 @@ const foto = nome => `data:image/jpeg;base64,${readFileSync(join(AQUI, nome)).to
 const livro = { id: 'livro-teste', role: 'Mãe', recipientName: 'Tom', recipientGender: 'menino', createdAt: new Date().toISOString(), coverColor: 'verde' }
 const agora = new Date().toISOString()
 const respostas = {
-  1001: { questionId: 1001, text: 'Maria Aparecida da Silva. Todo mundo me chama de Cida desde pequena.', photos: [], updatedAt: agora },
+  1001: { questionId: 1001, text: 'Maria Aparecida da Silva. Todo mundo me chama de Cida desde pequena.', photos: [], audio: { url: 'data:audio/webm;base64,GkXfow==', seconds: 42 }, updatedAt: agora },
   1002: { questionId: 1002, text: 'Minha mãe era devota de Nossa Senhora Aparecida e prometeu que, se a gravidez corresse bem, a filha levaria o nome dela. Meu pai queria Helena, mas perdeu a discussão antes mesmo de começar.', photos: [foto('foto-cor.jpg')], photoCaptions: ['Eu, aos sete anos'], updatedAt: agora },
   1004: { questionId: 1004, text: 'Meu pai, José, veio de Minas. Minha mãe, Lourdes, nasceu em Petrópolis. Os dois se conheceram num baile de carnaval e casaram no ano seguinte.\n\nEste parágrafo existe para testar a quebra de página e a cor do texto corrido do livro.', photos: [foto('teste-saturado.jpg'), foto('foto-2.jpg')], photoCaptions: ['Teste de cor', 'Meu pai'], updatedAt: agora }
 }

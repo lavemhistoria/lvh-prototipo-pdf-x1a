@@ -24,11 +24,11 @@ Imprime um relatório JSON e sai com código 0 só quando o PDF passou na valida
 | Arquivo | O que faz |
 |---|---|
 | `cores.py` | Cor neutra (texto, legendas) vira só K, com a mesma luminosidade. Cor com matiz passa pelo perfil ICC. Tudo limitado a 280% de tinta (alvo interno de 272%, por causa da recompressão JPEG). |
-| `preparar.py` | Camada de frente: reescreve as cores, achata a opacidade constante sobre o papel branco e converte as fotos (P&B vira K, colorida vira CMYK com limite de tinta). Máscara ou sombra na frente é erro: elas pertencem ao fundo. |
+| `preparar.py` | Camada de frente: reescreve as cores, achata a opacidade constante sobre o papel branco e converte as fotos (P&B vira K, colorida vira CMYK com limite de tinta). Tira os links (no PDF do site, o QR code de cada voz é clicável; o PDF/X-1a não aceita anotações). Máscara ou sombra na frente é erro: elas pertencem ao fundo. |
 | `fundo.py` | Desenha o fundo a 450 dpi com o Ghostscript (que resolve a transparência como o navegador) e coloca por baixo da frente, em CMYK. Cinza de verdade (sombras, fios, QR) vira K; o creme das molduras mantém o tom. |
 | `acabamento.py` | Formato exato, sangria de 3 mm (branca), TrimBox e BleedBox, marcas de corte e informações de página, tudo em K. |
 | `pipeline.py` | Orquestra, roda o Ghostscript (PDF 1.3, OutputIntent, fontes embutidas, 300 dpi, JPEG de qualidade máxima sem subamostragem) e valida. |
-| `validar.py` | Confere versão, PDF/X, OutputIntent, fontes, caixas, sangria, espaços de cor, transparência, cobertura de tinta, páginas que viraram imagem e elementos encostando no corte. |
+| `validar.py` | Confere versão, PDF/X, OutputIntent, fontes, caixas, sangria, espaços de cor, transparência, cobertura de tinta, páginas que viraram imagem, links que sobraram e elementos encostando no corte. |
 
 ## Testes
 

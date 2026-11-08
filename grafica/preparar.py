@@ -31,6 +31,7 @@ class Relatorio:
         self.cores_convertidas = 0
         self.opacidades_achatadas = 0
         self.fundos = 0
+        self.links_removidos = 0
         self.avisos = []
         self.erros = []
 
@@ -105,7 +106,22 @@ class Preparador:
             self._reescrever_conteudo(pagina, recursos, Estado(), eh_pagina=True)
             if '/Group' in pagina.obj:
                 del pagina.obj['/Group']
+            self._remover_anotacoes(pagina)
         return self.rel
+
+    def _remover_anotacoes(self, pagina):
+        """Tira links e outras anotações: o PDF/X-1a não aceita anotação dentro da página.
+        No site, o QR code de cada voz é um link clicável; no papel, quem lê aponta a câmera."""
+        anotacoes = pagina.obj.get('/Annots')
+        if anotacoes is None:
+            return
+        restantes = [a for a in anotacoes if str(a.get('/Subtype', '')) in ('/PrinterMark', '/TrapNet')]
+        removidas = len(anotacoes) - len(restantes)
+        self.rel.links_removidos += removidas
+        if restantes:
+            pagina.obj['/Annots'] = pikepdf.Array(restantes)
+        else:
+            del pagina.obj['/Annots']
 
     def _processar_patterns(self, recursos):
         if recursos is None:

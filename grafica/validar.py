@@ -203,6 +203,12 @@ def validar(caminho, largura_mm=None, altura_mm=None):
                     erros.append(f'{onde}: sangria de {sangria:.1f} mm, o manual pede de 3 a 5 mm.')
                 if b[0] < media[0] - 0.01 or b[2] > media[2] + 0.01:
                     erros.append(f'{onde}: BleedBox maior que a MediaBox.')
+        # Link ou qualquer anotação dentro da página não passa no PDF/X-1a (marcas de impressora, sim)
+        anotacoes = [a for a in pagina.obj.get('/Annots', [])
+                     if str(a.get('/Subtype', '')) not in ('/PrinterMark', '/TrapNet')]
+        if anotacoes:
+            erros.append(f'{onde}: tem {len(anotacoes)} anotaç{"ões" if len(anotacoes) > 1 else "ão"} '
+                         '(links, por exemplo), que o PDF/X-1a não aceita.')
         rasterizada = _pagina_rasterizada(pagina, media)
         if rasterizada:
             erros.append(
